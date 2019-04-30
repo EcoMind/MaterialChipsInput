@@ -2,6 +2,8 @@ package com.pchmn.materialchips.adapter;
 
 import android.content.Context;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.support.v7.widget.RecyclerView;
 import android.text.Editable;
 import android.text.InputType;
@@ -14,9 +16,12 @@ import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.RelativeLayout;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import com.pchmn.materialchips.ChipView;
 import com.pchmn.materialchips.ChipsInput;
@@ -36,6 +41,8 @@ public class ChipsAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     private String mHintLabel;
     private ChipsInputEditText mEditText;
     private RecyclerView mRecycler;
+
+    private ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(10);
 
     public ChipsAdapter(Context context, ChipsInput chipsInput, RecyclerView recycler) {
         mContext = context;
@@ -271,18 +278,34 @@ public class ChipsAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             mEditText.setFilterableListView(filterableListView);
     }
 
-    public void addChip(ChipInterface chip) {
-        if(!listContains(mChipList, chip)) {
-            mChipList.add(chip);
-            // notify listener
-            mChipsInput.onChipAdded(chip, mChipList.size());
-            // hide hint
-            mEditText.setHint(null);
-            // reset text
-            mEditText.setText(null);
-            // refresh data
-            notifyItemInserted(mChipList.size());
-        }
+    public void addChip(final ChipInterface chip) {
+        final WeakReference<ChipsAdapter> weakReference = new WeakReference<>(this);
+        executor.schedule(new Runnable() {
+            @Override
+            public void run() {
+                new Handler(Looper.getMainLooper()).post(new Runnable() {
+                    @Override
+                    public void run() {
+                        final ChipsAdapter weak = weakReference.get();
+                        if (weak == null) {
+                            return;
+                        }
+                        if(!weak.listContains(weak.mChipList, chip)) {
+                            weak.mChipList.add(chip);
+                            // notify listener
+                            weak.mChipsInput.onChipAdded(chip, weak.mChipList.size());
+                            // hide hint
+                            weak.mEditText.setHint(null);
+                            // reset text
+                            weak.mEditText.setText(null);
+                            // refresh data
+                            weak.notifyItemInserted(weak.mChipList.size());
+                        }
+                    }
+                });
+            }
+        }, 100, TimeUnit.MILLISECONDS);
+
     }
 
     public void removeChip(ChipInterface chip) {
