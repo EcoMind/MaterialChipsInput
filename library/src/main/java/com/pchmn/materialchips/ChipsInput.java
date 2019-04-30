@@ -236,6 +236,13 @@ public class ChipsInput extends ScrollViewMaxHeight {
         mChipsListener = chipsListener;
     }
 
+    public void removeChipsListener(ChipsListener chipsListener) {
+        mChipsListenerList.remove(chipsListener);
+        if (mChipsListener == chipsListener) {
+            mChipsListener = null;
+        }
+    }
+
     public void onChipAdded(ChipInterface chip, int size) {
         for(ChipsListener chipsListener: mChipsListenerList) {
             chipsListener.onChipAdded(chip, size);
