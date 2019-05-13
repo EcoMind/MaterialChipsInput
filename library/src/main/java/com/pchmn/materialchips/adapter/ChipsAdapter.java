@@ -8,6 +8,7 @@ import android.support.v7.widget.RecyclerView;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -21,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 import com.pchmn.materialchips.ChipView;
@@ -42,7 +44,7 @@ public class ChipsAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     private ChipsInputEditText mEditText;
     private RecyclerView mRecycler;
 
-    private ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(10);
+    private Semaphore semaphore = new Semaphore(1);
 
     public ChipsAdapter(Context context, ChipsInput chipsInput, RecyclerView recycler) {
         mContext = context;
@@ -280,32 +282,41 @@ public class ChipsAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
     public void addChip(final ChipInterface chip) {
         final WeakReference<ChipsAdapter> weakReference = new WeakReference<>(this);
-        executor.schedule(new Runnable() {
+        new Thread(new Runnable() {
             @Override
             public void run() {
-                new Handler(Looper.getMainLooper()).post(new Runnable() {
-                    @Override
-                    public void run() {
-                        final ChipsAdapter weak = weakReference.get();
-                        if (weak == null) {
-                            return;
-                        }
-                        if(!weak.listContains(weak.mChipList, chip)) {
-                            weak.mChipList.add(chip);
-                            // notify listener
-                            weak.mChipsInput.onChipAdded(chip, weak.mChipList.size());
-                            // hide hint
-                            weak.mEditText.setHint(null);
-                            // reset text
-                            weak.mEditText.setText(null);
-                            // refresh data
-                            weak.notifyItemInserted(weak.mChipList.size());
-                        }
+                try {
+                    if (weakReference.get() == null) {
+                        return;
                     }
-                });
+                    weakReference.get().semaphore.acquire();
+                    new Handler(Looper.getMainLooper()).post(new Runnable() {
+                        @Override
+                        public void run() {
+                            final ChipsAdapter weak = weakReference.get();
+                            if (weak == null) {
+                                return;
+                            }
+                            if (!weak.listContains(weak.mChipList, chip)) {
+                                weak.mChipList.add(chip);
+                                // notify listener
+                                weak.mChipsInput.onChipAdded(chip, weak.mChipList.size());
+                                // hide hint
+                                weak.mEditText.setHint(null);
+                                // reset text
+                                weak.mEditText.setText(null);
+                                // refresh data
+                                weak.notifyItemInserted(weak.mChipList.size());
+                                weak.semaphore.release();
+                            }
+                        }
+                    });
+                } catch (InterruptedException e) {
+                    Log.e("ChipsAdapter", e.getLocalizedMessage(), e);
+                    Thread.currentThread().interrupt();
+                }
             }
-        }, 100, TimeUnit.MILLISECONDS);
-
+        }).start();
     }
 
     public void removeChip(ChipInterface chip) {
