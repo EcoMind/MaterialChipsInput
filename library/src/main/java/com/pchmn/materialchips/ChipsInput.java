@@ -20,6 +20,8 @@ import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+
+import com.beloo.widget.chipslayoutmanager.layouter.breaker.IRowBreaker;
 import com.pchmn.materialchips.adapter.ChipsAdapter;
 import com.pchmn.materialchips.model.Chip;
 import com.pchmn.materialchips.model.ChipInterface;
@@ -135,6 +137,12 @@ public class ChipsInput extends ScrollViewMaxHeight {
         // adapter
         mChipsAdapter = new ChipsAdapter(mContext, this, mRecyclerView);
         ChipsLayoutManager chipsLayoutManager = ChipsLayoutManager.newBuilder(mContext)
+                .setRowBreaker(new IRowBreaker() {
+                    @Override
+                    public boolean isItemBreakRow(int i) {
+                        return (mChipsAdapter.getChipList().get(i).getTag().equals("BREAK"));
+                    }
+                })
                 .setOrientation(ChipsLayoutManager.HORIZONTAL)
                 .build();
         mRecyclerView.setLayoutManager(chipsLayoutManager);

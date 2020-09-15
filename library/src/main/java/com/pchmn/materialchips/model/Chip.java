@@ -13,6 +13,7 @@ public class Chip implements ChipInterface {
     private Drawable avatarDrawable;
     private String label;
     private String info;
+    private String tag = "";
 
     public Chip(@NonNull Object id, @Nullable Uri avatarUri, @NonNull String label, @Nullable String info) {
         this.id = id;
@@ -75,4 +76,10 @@ public class Chip implements ChipInterface {
     public String getInfo() {
         return info;
     }
+
+    @Override
+    public String getTag() { return tag; }
+
+    @Override
+    public void setTag(String tag) { this.tag = tag; }
 }
