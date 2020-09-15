@@ -12,6 +12,7 @@ public class ContactChip implements ChipInterface {
     private Uri avatarUri;
     private String name;
     private String phoneNumber;
+    private String tag = "";
 
     public ContactChip(String id, Uri avatarUri, String name, String phoneNumber) {
         this.id = id;
@@ -44,4 +45,12 @@ public class ContactChip implements ChipInterface {
     public String getInfo() {
         return phoneNumber;
     }
+
+    @Override
+    public String getTag() {
+        return tag;
+    }
+
+    @Override
+    public void setTag(String tag) { this.tag = tag; }
 }

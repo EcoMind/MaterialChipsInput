@@ -1,6 +1,8 @@
 package com.pchmn.materialchips.adapter;
 
 import android.content.Context;
+import android.graphics.Paint;
+import android.graphics.Rect;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
@@ -21,9 +23,7 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
 
 import com.pchmn.materialchips.ChipView;
 import com.pchmn.materialchips.ChipsInput;
@@ -162,6 +162,7 @@ public class ChipsAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 mChipsInput.onTextChanged(s);
+                checkOnTextChanged(s.toString());
             }
 
             @Override
@@ -169,6 +170,39 @@ public class ChipsAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
             }
         });
+    }
+
+    private void checkOnTextChanged(String s) {
+        if(mChipList.size() == 0) { //Check if there is at least an element
+            return;
+        }
+        if(isGreaterThenEditText(s)){ //If the text is near to the edge, set Tag to "Break" and go to ahead
+            mChipList.get(mChipList.size()-1).setTag("BREAK");
+            notifyDataSetChanged();
+            mEditText.requestFocus();
+        }
+        ChipInterface tmpChip = mChipList.get(mChipList.size()-1);
+        if (isLessDefaultSize(s) && tmpChip.getTag().equals("BREAK")){ //If text size is lesser then EditText default size and previus chip is tagged "Break", clear tag of this chip and reload view
+            tmpChip.setTag("");
+            notifyDataSetChanged();
+            mEditText.requestFocus();
+        }
+    }
+
+    private boolean isGreaterThenEditText(String s) { //Check if the text is near to the edge
+        Rect bounds = new Rect();
+        Paint textPaint = mEditText.getPaint();
+        textPaint.getTextBounds(s, 0, s.length(), bounds);
+        int width = bounds.width();
+        return mEditText.getLayoutParams().width <= width;
+    }
+
+    private boolean isLessDefaultSize(String s) {
+        Rect bounds = new Rect();
+        Paint textPaint = mEditText.getPaint();
+        textPaint.getTextBounds(s, 0, s.length(), bounds);
+        int width = bounds.width();
+        return width < ViewUtil.dpToPx(50);
     }
 
     private void autofitEditText() {
@@ -321,6 +355,7 @@ public class ChipsAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
     public void removeChip(ChipInterface chip) {
         int position = mChipList.indexOf(chip);
+        chip.setTag("");
         mChipList.remove(position);
         // notify listener
         notifyItemRangeChanged(position, getItemCount());
@@ -333,6 +368,7 @@ public class ChipsAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
     public void removeChip(int position) {
         ChipInterface chip = mChipList.get(position);
+        chip.setTag("");
         // remove contact
         mChipList.remove(position);
         // notify listener
@@ -348,6 +384,7 @@ public class ChipsAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         for (Iterator<ChipInterface> iter = mChipList.listIterator(); iter.hasNext(); ) {
             ChipInterface chip = iter.next();
             if (chip.getId() != null && chip.getId().equals(id)) {
+                chip.setTag("");
                 // remove chip
                 iter.remove();
                 // notify listener
@@ -365,6 +402,7 @@ public class ChipsAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         for (Iterator<ChipInterface> iter = mChipList.listIterator(); iter.hasNext(); ) {
             ChipInterface chip = iter.next();
             if (chip.getLabel().equals(label)) {
+                chip.setTag("");
                 // remove chip
                 iter.remove();
                 // notify listener
@@ -382,6 +420,7 @@ public class ChipsAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         for (Iterator<ChipInterface> iter = mChipList.listIterator(); iter.hasNext(); ) {
             ChipInterface chip = iter.next();
             if (chip.getInfo() != null && chip.getInfo().equals(info)) {
+                chip.setTag("");
                 // remove chip
                 iter.remove();
                 // notify listener

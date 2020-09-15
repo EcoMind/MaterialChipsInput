@@ -11,4 +11,7 @@ public interface ChipInterface {
     Drawable getAvatarDrawable();
     String getLabel();
     String getInfo();
+    String getTag();
+    void setTag(String tag);
+    
 }
